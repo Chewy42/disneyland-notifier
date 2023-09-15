@@ -8,3 +8,4 @@ else
     echo "export API_PASS=$API_PASS" > .tokens.sh
 fi
 
+export DOCKER_PLATFORM="linux/amd64"

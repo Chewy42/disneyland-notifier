@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  flask:
+    build:
+      platforms:
+        - ${DOCKER_PLATFORM}
+      context: .
+      dockerfile: ./Dockerfile_flask
+    environment:
+      - API_PASS=${API_PASS}
+    volumes:
+      - ./:/app    # this is only necessary for debugging
+    ports:
+      - "5000:5000"

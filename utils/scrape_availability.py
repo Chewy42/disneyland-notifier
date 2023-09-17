@@ -1,25 +1,44 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support.expected_conditions import visibility_of_element_located
+import asyncio
+import json
+from pyppeteer import launch
+from pyppeteer_stealth import stealth
 
-driver_service = webdriver.chrome.service.Service('chromedriver-mac-x64/chromedriver')
 
-def scrape_availability():
+async def scrape_availability():
     print('Started Webscraping Data')
-    browser = webdriver.Chrome(service=driver_service)
-    browser.get("https://disneyland.disney.go.com/passes/blockout-dates/")
+    browser = await launch(headless=True, args=['--disable-dev-shm-usage', '--no-sandbox'])
+    page = await browser.newPage()
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.')
+    await page.setViewport({'width': 1280, 'height': 800})
+    await stealth(page) 
+    await page.goto("https://disneyland.disney.go.com/passes/blockout-dates/")
+
+    # Output browser to file
+    content = await page.content()
 
     passes = ['inspire', 'believe', 'enchant', 'imagine', 'dream']
 
-    # wait for entire page and js to load
-    WebDriverWait(browser, 10).until(visibility_of_element_located((By.CSS_SELECTOR, ".sectionComponent")))
+    # Wait for the entire page and JavaScript to load
+    await asyncio.sleep(5)
 
-    for i in range(0, 5, 1):
-        browser.execute_script(f'document.getElementsByClassName("sectionComponent")[0].shadowRoot.children[2].children[0].items[{i}].click()')
-        with open(f'data/{passes[i]}.json', 'w') as outfile:
-            print(f"Successfully recieved data on the {passes[i].capitalize()} pass")
-            outfile.write(str(browser.execute_script('return document.getElementsByClassName("calendarContainer")[0].children[0].children[0].children[0].$.admissionCalendar.dates')))
-            print(f"Wrote to file: {passes[i].capitalize()}.json")
+    for i, pass_name in enumerate(passes):
+        # Execute JavaScript on the page to simulate clicks
+        await page.evaluate(f'''() => {{
+            document.getElementsByClassName("sectionComponent")[0].shadowRoot.children[2].children[0].items[{i}].click()
+        }}''')
 
-    browser.close()
+        # Fetch data
+        pass_data = await page.evaluate('''() => {
+            return document.getElementsByClassName("calendarContainer")[0].children[0].children[0].children[0].$.admissionCalendar.dates;
+        }''')
+
+        # Write to JSON file
+        with open(f'../data/{pass_name}.json', 'w') as outfile:
+            print(f"Successfully received data on the {pass_name.capitalize()} pass")
+            json.dump(pass_data, outfile)
+            print(f"Wrote to file: {pass_name.capitalize()}.json")
+
+    await browser.close()
+
+# Call the function to perform scraping
+asyncio.get_event_loop().run_until_complete(scrape_availability())

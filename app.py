@@ -36,7 +36,7 @@ def get_availability( *args, **kwargs ):
         return jsonify({'error': 'Invalid magic key name'})
     return jsonify({'error': 'Invalid magic key name'})
 
-#prepareData()
+prepareData()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
